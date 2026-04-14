@@ -2,7 +2,6 @@
 venv/
 __pycache__/
 *.pyc
-estado_procesos.json
 output/*.xlsx
 output/*.json
 data/listado_radicados.xlsx
