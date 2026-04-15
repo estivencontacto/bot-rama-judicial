@@ -1,52 +1,66 @@
-# Bot de Monitoreo de Procesos Judiciales
+# ⚖️ Bot de Monitoreo de Procesos Judiciales
 
-Sistema automatizado desarrollado en Python para consultar procesos judiciales en la plataforma de la Rama Judicial de Colombia, generar reportes estructurados en Excel y enviar notificaciones en tiempo real mediante consumo de servicios API REST.
-
----
-
-## Descripción
-
-Este proyecto permite automatizar la consulta de múltiples radicados judiciales, procesar la información obtenida y generar alertas sin intervención manual.
-
-El sistema integra técnicas de web scraping con Selenium, procesamiento de datos con Pandas y comunicación con servicios externos a través de APIs REST.
+Sistema automatizado desarrollado en Python para consultar procesos judiciales en la plataforma de la Rama Judicial de Colombia, generar reportes en Excel y enviar notificaciones en tiempo real mediante consumo de servicios API REST.
 
 ---
 
-## Características
+## 📌 Descripción
+
+Este proyecto permite automatizar la consulta de múltiples radicados judiciales, eliminando la necesidad de revisión manual.
+
+El sistema realiza:
+- extracción automatizada de información
+- procesamiento estructurado de datos
+- generación de reportes
+- envío de notificaciones en tiempo real
+
+Todo integrado en un flujo automatizado y tolerante a errores.
+
+---
+
+## 🚀 Características
 
 - Consulta automatizada de múltiples procesos judiciales
-- Extracción de juzgado, partes, fecha de radicación y última actuación
-- Manejo individual de errores por radicado (tolerancia a fallos)
-- Generación de reportes en Excel con estructura organizada
-- Registro de errores en hoja separada para auditoría
-- Persistencia de estado local mediante JSON
-- Integración con servicios externos mediante API REST para notificaciones
+- Extracción de:
+  - juzgado
+  - partes (demandante/demandado)
+  - fecha de radicación
+  - última actuación
+- Manejo individual de errores por radicado (no detiene el proceso)
+- Generación de reporte Excel con:
+  - hoja de resultados
+  - hoja de errores
+- Persistencia de estado local en JSON
+- Integración con API REST para notificaciones
 - Configuración segura mediante variables de entorno
-- Arquitectura modular orientada a mantenimiento y escalabilidad
+- Arquitectura modular orientada a escalabilidad
 
 ---
 
-## Stack Técnico
+## 🧠 Stack Técnico
 
 - Python
-- Selenium (Automatización y Web Scraping)
+- Selenium (Web Scraping y automatización)
 - Pandas (Procesamiento de datos)
-- OpenPyXL (Generación de archivos Excel)
+- OpenPyXL (Generación de Excel)
 - Requests (Consumo de APIs REST)
-- python-dotenv (Gestión de variables de entorno)
+- python-dotenv (Variables de entorno)
 - JSON (Persistencia de estado)
 
 ---
 
-## Integración con APIs
+## 🔌 Integración con APIs
 
-El sistema implementa comunicación con servicios externos mediante el consumo de una API REST para el envío de notificaciones automatizadas.
+El sistema utiliza una API REST para enviar notificaciones automáticas con el estado de los procesos.
 
-Esto permite entregar resultados en tiempo real sin necesidad de intervención manual, facilitando el monitoreo continuo de procesos judiciales.
+Esto permite:
+- monitoreo en tiempo real
+- automatización completa del flujo
+- eliminación de tareas manuales
 
 ---
 
-## Estructura del Proyecto
+## 📁 Estructura del Proyecto
 
 
 bot-rama-judicial/
@@ -66,12 +80,11 @@ bot-rama-judicial/
 ├── README.md
 ├── LICENSE
 ├── run.py
-└── ejecutar_bot.bat
 
 
 ---
 
-## Instalación
+## ⚙️ Instalación
 
 ### 1. Clonar el repositorio
 
@@ -84,74 +97,56 @@ py -m venv venv
 .\venv\Scripts\Activate.ps1
 4. Instalar dependencias
 .\venv\Scripts\python.exe -m pip install -r requirements.txt
-Configuración
+🔐 Configuración
 1. Crear archivo .env
 
-Crear un archivo en la raíz del proyecto llamado:
+En la raíz del proyecto, crea un archivo:
 
 .env
 
-Copiando el contenido de:
+Usa como base:
 
 .env.example
-Configuración del Bot y Variables de Entorno
-
-El sistema utiliza un servicio externo basado en API REST para enviar notificaciones automatizadas.
-
-2. Crear el bot
-Abrir Telegram
-Buscar:
+🤖 Configuración del Bot
+2. Crear bot
+Abre Telegram
+Busca:
 @BotFather
-Ejecutar:
+Ejecuta:
 /newbot
-Asignar nombre y username
-Copiar el token generado
+Asigna:
+nombre
+username
+Copia el token generado
 3. Obtener Chat ID
-Enviar cualquier mensaje al bot creado
-Abrir en navegador:
+Envía un mensaje a tu bot
+Abre en el navegador:
 https://api.telegram.org/bot<TU_TOKEN>/getUpdates
-Buscar:
+Busca:
 "chat": {
   "id": 123456789
 }
 
-Ese número es el CHAT_ID
+Ese número es tu CHAT_ID
 
 4. Configurar variables
 
-Editar el archivo .env:
+En .env:
 
-TELEGRAM_TOKEN=tu_token_aqui
-TELEGRAM_CHAT_ID=tu_chat_id_aqui
-5. Seguridad
-No subir el archivo .env al repositorio
-Mantener las credenciales privadas
-Utilizar .env.example como plantilla pública
-Ejecución
+TELEGRAM_TOKEN=tu_token
+TELEGRAM_CHAT_ID=tu_chat_id
+🔒 Seguridad
+❌ No subir .env a GitHub
+✅ Usar .env.example como plantilla
+🔁 Revocar tokens si fueron expuestos
+▶️ Ejecución
 .\venv\Scripts\python.exe run.py
-Salidas del sistema
-Reporte Excel en output/
-Hoja de errores
-Archivo JSON de estado
-Notificación automatizada en tiempo real
-Flujo del sistema
-Lectura de radicados desde Excel
-Consulta automatizada con Selenium
-Extracción de datos
-Manejo de errores
-Generación de Excel
-Persistencia del estado
-Envío de notificación mediante API REST
-Posibles mejoras
-Notificar solo cuando existan cambios
-Implementar sistema de logs
-Integrar base de datos
-Desplegar en la nube
-Añadir pruebas unitarias
-Autor
+📊 Salidas del sistema
 
-Estiven Agudelo
+El sistema genera:
 
-Licencia
-
-MIT License
+📁 output/reporte_procesos_YYYY-MM-DD.xlsx
+📄 hoja "Procesos"
+⚠️ hoja "Errores"
+📄 archivo JSON con estado
+📩 notificación automática en Telegram
