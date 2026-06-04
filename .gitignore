@@ -1,0 +1,15 @@
+.env
+venv/
+__pycache__/
+*.pyc
+*.log
+dev_verification.db
+*.db-journal
+*.db-shm
+*.db-wal
+frontend/node_modules/
+frontend/dist/
+output/*.xlsx
+output/*.json
+output/screenshots/
+data/listado_radicados.xlsx
