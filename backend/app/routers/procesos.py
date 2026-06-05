@@ -13,12 +13,15 @@ router = APIRouter(prefix="/procesos", tags=["procesos"])
 
 
 def _to_read(proceso: Proceso) -> ProcesoRead:
+    raw_data = proceso.raw_data or {}
     return ProcesoRead(
         radicado=proceso.radicado.numero,
         juzgado=proceso.juzgado,
         demandante=proceso.demandante,
         demandado=proceso.demandado,
         partes=proceso.partes,
+        ultima_actuacion=raw_data.get("Ultima_actuacion"),
+        ultima_anotacion=raw_data.get("Ultima_anotacion"),
         estado=proceso.estado,
         fecha_radicacion=proceso.fecha_radicacion,
         fecha_ultima_actuacion=proceso.fecha_ultima_actuacion,

@@ -55,7 +55,38 @@ def _upsert_proceso(db: Session, radicado: Radicado, datos: dict) -> tuple[Proce
     proceso.raw_data = datos
 
     tiene_novedad = es_primer_registro or estado_anterior != estado_hash
-    if tiene_novedad:
+    db.flush()
+    actuaciones = datos.get("Actuaciones") or []
+    nuevas_actuaciones = 0
+
+    for item in actuaciones:
+        fecha = _parse_date(item.get("Fecha"))
+        titulo = item.get("Actuacion") or "Actuacion sin titulo"
+        descripcion = item.get("Anotacion")
+        existe = (
+            db.query(Actuacion)
+            .filter(
+                Actuacion.proceso_id == proceso.id,
+                Actuacion.fecha == fecha,
+                Actuacion.titulo == titulo,
+                Actuacion.descripcion == descripcion,
+            )
+            .first()
+        )
+        if existe:
+            continue
+        db.add(
+            Actuacion(
+                proceso_id=proceso.id,
+                fecha=fecha,
+                titulo=titulo,
+                descripcion=descripcion,
+                raw_data=item,
+            )
+        )
+        nuevas_actuaciones += 1
+
+    if tiene_novedad and not actuaciones:
         db.flush()
         db.add(
             Actuacion(
@@ -67,7 +98,7 @@ def _upsert_proceso(db: Session, radicado: Radicado, datos: dict) -> tuple[Proce
             )
         )
 
-    return proceso, tiene_novedad, es_primer_registro
+    return proceso, tiene_novedad or nuevas_actuaciones > 0, es_primer_registro
 
 
 def _guardar_captura_error(driver, radicado: str) -> str | None:

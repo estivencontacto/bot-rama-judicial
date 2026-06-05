@@ -14,6 +14,8 @@ COLUMNAS_RESULTADO = [
     "Partes",
     "Fecha_radicacion",
     "Fecha_ultima_actuacion",
+    "Ultima_actuacion",
+    "Ultima_anotacion",
 ]
 
 

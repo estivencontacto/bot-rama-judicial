@@ -805,13 +805,14 @@
         return `
           <div class="tableWrap">
             <table>
-              <thead><tr><th>Radicado</th><th>Juzgado</th><th>Partes</th><th>Ultima actuacion</th><th>Estado</th><th></th></tr></thead>
+              <thead><tr><th>Radicado</th><th>Juzgado</th><th>Partes</th><th>Ultima actuacion</th><th>Anotacion</th><th>Estado</th><th></th></tr></thead>
               <tbody>${items.map((p) => `
                 <tr>
                   <td>${esc(p.radicado)}</td>
                   <td>${esc(p.juzgado || "No identificado")}</td>
                   <td>${esc(compact ? (p.partes || "No identificadas").slice(0, 80) : (p.partes || "No identificadas"))}</td>
-                  <td>${esc(p.fecha_ultima_actuacion || "Sin fecha")}</td>
+                  <td><strong>${esc(p.fecha_ultima_actuacion || "Sin fecha")}</strong><br>${esc(p.ultima_actuacion || "Sin actuacion")}</td>
+                  <td>${esc(compact ? (p.ultima_anotacion || "Sin anotacion").slice(0, 90) : (p.ultima_anotacion || "Sin anotacion"))}</td>
                   <td>${statusBadge(p.estado || "monitoreado")}</td>
                   <td><button class="secondary" onclick="openProceso('${esc(p.radicado)}')">Ver</button></td>
                 </tr>
@@ -982,6 +983,8 @@ Fecha ultima actuacion: 2025-09-18</pre>
               <p><strong>Demandante:</strong> ${esc(p.demandante || "No identificado")}</p>
               <p><strong>Demandado:</strong> ${esc(p.demandado || "No identificado")}</p>
               <p><strong>Ultima actuacion:</strong> ${esc(p.fecha_ultima_actuacion || "Sin fecha")}</p>
+              <p><strong>Actuacion:</strong> ${esc(p.ultima_actuacion || "Sin actuacion")}</p>
+              <p><strong>Anotacion:</strong> ${esc(p.ultima_anotacion || "Sin anotacion")}</p>
             </div>
             <div class="panel">
               <h3>Historial</h3>

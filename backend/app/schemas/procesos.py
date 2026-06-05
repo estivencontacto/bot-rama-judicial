@@ -21,6 +21,8 @@ class ProcesoRead(BaseModel):
     demandante: str | None = None
     demandado: str | None = None
     partes: str | None = None
+    ultima_actuacion: str | None = None
+    ultima_anotacion: str | None = None
     estado: str
     fecha_radicacion: date | None = None
     fecha_ultima_actuacion: date | None = None

@@ -12,6 +12,7 @@ import re
 import time
 from dataclasses import dataclass
 from typing import Optional
+from urllib.parse import urljoin
 
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException, WebDriverException
@@ -26,6 +27,9 @@ from backend.app.core.settings import get_settings
 
 
 logger = logging.getLogger(__name__)
+DATE_RE = re.compile(r"\d{4}-\d{2}-\d{2}")
+DEMANDANTE_LABELS = ["DEMANDANTE", "ACCIONANTE"]
+DEMANDADO_LABELS = ["DEMANDADO", "INDICIADO", "CAUSANTE"]
 
 
 class ScraperError(RuntimeError):
@@ -109,6 +113,180 @@ def crear_wait(driver, timeout: int | None = None) -> WebDriverWait:
     return WebDriverWait(driver, timeout or settings.selenium_timeout_seconds)
 
 
+def _normalizar_texto(texto: str | None) -> str:
+    """Limpia espacios repetidos sin cambiar el contenido juridico."""
+    return re.sub(r"\s+", " ", (texto or "").strip())
+
+
+def _extraer_valor_etiquetado(texto: str, etiquetas: list[str], etiquetas_corte: list[str]) -> str | None:
+    """Extrae valores de celdas que contienen varias etiquetas procesales."""
+    if not texto:
+        return None
+
+    etiquetas_patron = "|".join(re.escape(etiqueta) for etiqueta in etiquetas)
+    corte_patron = "|".join(re.escape(etiqueta) for etiqueta in etiquetas_corte)
+    patron = re.compile(
+        rf"(?:{etiquetas_patron})(?:/[A-ZÁÉÍÓÚÑ\s]+)*\s*:\s*(.*?)(?=(?:{corte_patron})(?:/[A-ZÁÉÍÓÚÑ\s]+)*\s*:|$)",
+        re.IGNORECASE | re.DOTALL,
+    )
+    match = patron.search(texto)
+    if not match:
+        return None
+    valor = _normalizar_texto(match.group(1))
+    return valor or None
+
+
+def _parsear_sujetos(texto: str) -> tuple[str | None, str | None]:
+    """Separa demandante y demandado aunque vengan en la misma celda."""
+    demandante = _extraer_valor_etiquetado(texto, DEMANDANTE_LABELS, DEMANDADO_LABELS)
+    demandado = _extraer_valor_etiquetado(texto, DEMANDADO_LABELS, DEMANDANTE_LABELS)
+    return demandante, demandado
+
+
+def _extraer_resumen_resultado(fila) -> dict:
+    """Lee la fila principal de resultados antes de entrar al detalle."""
+    columnas = fila.find_elements(By.TAG_NAME, "td")
+    demandante = None
+    demandado = None
+    juzgado = None
+    fechas: list[str] = []
+
+    for col in columnas:
+        texto = col.text.strip()
+        texto_upper = texto.upper()
+
+        sujeto_demandante, sujeto_demandado = _parsear_sujetos(texto)
+        demandante = demandante or sujeto_demandante
+        demandado = demandado or sujeto_demandado
+
+        if not juzgado and ("JUZGADO" in texto_upper or "DESPACHO" in texto_upper):
+            juzgado = _normalizar_texto(texto)
+
+        fechas.extend(DATE_RE.findall(texto))
+
+    return {
+        "Juzgado": juzgado or "No identificado",
+        "Demandante": demandante or "No identificado",
+        "Demandado": demandado or "No identificado",
+        "Fecha_radicacion": min(fechas) if fechas else None,
+        "Fecha_ultima_actuacion": max(fechas) if fechas else None,
+    }
+
+
+def _click_detalle_resultado(driver, wait, fila, radicado: str) -> bool:
+    """Abre el detalle del proceso desde el link del radicado."""
+    candidatos = []
+    selectores = [
+        ".//*[@href]",
+        ".//*[@ng-reflect-router-link]",
+        f".//a[contains(normalize-space(), '{radicado}')]",
+        f".//td[contains(normalize-space(), '{radicado}')]",
+        ".//a",
+        ".//button",
+    ]
+    for selector in selectores:
+        candidatos.extend(fila.find_elements(By.XPATH, selector))
+
+    for candidato in candidatos:
+        try:
+            href = candidato.get_attribute("href") or candidato.get_attribute("ng-reflect-router-link")
+            if href:
+                driver.get(urljoin(driver.current_url, href))
+                WebDriverWait(driver, 6).until(
+                    EC.presence_of_element_located(
+                        (
+                            By.XPATH,
+                            "//*[contains(translate(., 'abcdefghijklmnopqrstuvwxyz', 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'), 'DETALLE DEL PROCESO')]",
+                        )
+                    )
+                )
+                return True
+
+            ventanas_antes = set(driver.window_handles)
+            driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", candidato)
+            time.sleep(0.2)
+            try:
+                candidato.click()
+            except Exception:
+                driver.execute_script("arguments[0].click();", candidato)
+
+            ventanas_despues = set(driver.window_handles)
+            nuevas_ventanas = ventanas_despues - ventanas_antes
+            if nuevas_ventanas:
+                driver.switch_to.window(nuevas_ventanas.pop())
+
+            WebDriverWait(driver, 6).until(
+                EC.presence_of_element_located(
+                    (
+                        By.XPATH,
+                        "//*[contains(translate(., 'abcdefghijklmnopqrstuvwxyz', 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'), 'DETALLE DEL PROCESO')]",
+                    )
+                )
+            )
+            return True
+        except Exception:
+            continue
+
+    logger.warning("No se pudo abrir el detalle del radicado %s desde la fila de resultados.", radicado)
+    return False
+
+
+def _buscar_tabla_actuaciones(driver):
+    """Ubica la tabla de actuaciones por sus encabezados visibles."""
+    tablas = driver.find_elements(By.XPATH, "//table")
+    for tabla in tablas:
+        encabezado = tabla.text.upper()
+        if "FECHA DE ACTU" in encabezado and "ANOTACI" in encabezado:
+            return tabla
+    return None
+
+
+def _extraer_actuaciones_detalle(driver, wait) -> list[dict]:
+    """Extrae fecha, actuacion y anotacion desde el detalle del proceso."""
+    tab_selectors = [
+        "//div[@role='tab' and contains(translate(normalize-space(), 'abcdefghijklmnopqrstuvwxyzáéíóú', 'ABCDEFGHIJKLMNOPQRSTUVWXYZÁÉÍÓÚ'), 'ACTUACIONES')]",
+        "//button[contains(translate(normalize-space(), 'abcdefghijklmnopqrstuvwxyzáéíóú', 'ABCDEFGHIJKLMNOPQRSTUVWXYZÁÉÍÓÚ'), 'ACTUACIONES')]",
+    ]
+    for selector in tab_selectors:
+        try:
+            tab = wait.until(EC.element_to_be_clickable((By.XPATH, selector)))
+            driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", tab)
+            time.sleep(0.2)
+            try:
+                tab.click()
+            except Exception:
+                driver.execute_script("arguments[0].click();", tab)
+            time.sleep(1.0)
+            break
+        except Exception:
+            continue
+
+    try:
+        tabla = WebDriverWait(driver, 6).until(lambda active_driver: _buscar_tabla_actuaciones(active_driver))
+    except Exception:
+        tabla = _buscar_tabla_actuaciones(driver)
+    if not tabla:
+        logger.warning("No se encontro tabla de actuaciones en el detalle del proceso.")
+        return []
+
+    actuaciones: list[dict] = []
+    for fila in tabla.find_elements(By.XPATH, ".//tbody/tr"):
+        columnas = [_normalizar_texto(col.text) for col in fila.find_elements(By.TAG_NAME, "td")]
+        if len(columnas) < 3:
+            continue
+        actuaciones.append(
+            {
+                "Fecha": columnas[0] or None,
+                "Actuacion": columnas[1] or "Actuacion sin titulo",
+                "Anotacion": columnas[2] or None,
+                "Fecha_inicia_termino": columnas[3] if len(columnas) > 3 else None,
+                "Fecha_finaliza_termino": columnas[4] if len(columnas) > 4 else None,
+                "Fecha_registro": columnas[5] if len(columnas) > 5 else None,
+            }
+        )
+    return actuaciones
+
+
 def consultar_radicado(driver, wait, radicado: str) -> dict:
     """Consulta un radicado y normaliza los datos relevantes del resultado."""
     settings = get_settings()
@@ -132,39 +310,32 @@ def consultar_radicado(driver, wait, radicado: str) -> dict:
     if not filas:
         raise RadicadoSinResultados("No se encontraron resultados para el radicado.")
 
-    columnas = filas[0].find_elements(By.TAG_NAME, "td")
-    demandante = "No identificado"
-    demandado = "No identificado"
-    juzgado = "No identificado"
-    fechas = []
+    resumen = _extraer_resumen_resultado(filas[0])
+    actuaciones = []
+    if _click_detalle_resultado(driver, wait, filas[0], radicado):
+        actuaciones = _extraer_actuaciones_detalle(driver, wait)
 
-    for col in columnas:
-        texto = col.text.strip()
-        texto_upper = texto.upper()
-        if "DEMANDANTE" in texto_upper or "ACCIONANTE" in texto_upper:
-            if demandante == "No identificado":
-                demandante = texto.split(":")[-1].strip()
-        elif "DEMANDADO" in texto_upper or "INDICIADO" in texto_upper or "CAUSANTE" in texto_upper:
-            if demandado == "No identificado":
-                demandado = texto.split(":")[-1].strip()
-        elif "JUZGADO" in texto_upper or "DESPACHO" in texto_upper:
-            juzgado = texto
-        fechas.extend(re.findall(r"\d{4}-\d{2}-\d{2}", texto))
+    fecha_ultima_actuacion = resumen["Fecha_ultima_actuacion"]
+    if actuaciones and actuaciones[0].get("Fecha"):
+        fecha_ultima_actuacion = actuaciones[0]["Fecha"]
 
     partes = []
-    if demandante != "No identificado":
-        partes.append(f"Demandante: {demandante}")
-    if demandado != "No identificado":
-        partes.append(f"Demandado: {demandado}")
+    if resumen["Demandante"] != "No identificado":
+        partes.append(f"Demandante: {resumen['Demandante']}")
+    if resumen["Demandado"] != "No identificado":
+        partes.append(f"Demandado: {resumen['Demandado']}")
 
     return {
         "Radicado": radicado,
-        "Juzgado": juzgado,
-        "Demandante": demandante,
-        "Demandado": demandado,
+        "Juzgado": resumen["Juzgado"],
+        "Demandante": resumen["Demandante"],
+        "Demandado": resumen["Demandado"],
         "Partes": " | ".join(partes) if partes else "No identificadas",
-        "Fecha_radicacion": min(fechas) if fechas else None,
-        "Fecha_ultima_actuacion": max(fechas) if fechas else None,
+        "Fecha_radicacion": resumen["Fecha_radicacion"],
+        "Fecha_ultima_actuacion": fecha_ultima_actuacion,
+        "Ultima_actuacion": actuaciones[0]["Actuacion"] if actuaciones else None,
+        "Ultima_anotacion": actuaciones[0]["Anotacion"] if actuaciones else None,
+        "Actuaciones": actuaciones,
     }
 
 

@@ -41,6 +41,10 @@ def construir_mensaje_nueva_actuacion(datos: dict, es_primer_registro: bool = Fa
         lineas.append(f"Demandado: {demandado}")
 
     lineas.extend(["", f"Fecha ultima actuacion: {fecha_ultima}"])
+    if datos.get("Ultima_actuacion"):
+        lineas.append(f"Ultima actuacion: {datos.get('Ultima_actuacion')}")
+    if datos.get("Ultima_anotacion"):
+        lineas.append(f"Anotacion: {datos.get('Ultima_anotacion')}")
     return "\n".join(lineas)
 
 

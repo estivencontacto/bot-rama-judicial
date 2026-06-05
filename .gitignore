@@ -12,4 +12,5 @@ frontend/dist/
 output/*.xlsx
 output/*.json
 output/screenshots/
+output/debug/
 data/listado_radicados.xlsx
