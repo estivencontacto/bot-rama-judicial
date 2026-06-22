@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Verificacion Bot Rama Judicial</title>
+    <style>
+      body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, sans-serif; background: #f5f7f8; color: #1b252b; }
+      main { max-width: 980px; margin: 0 auto; padding: 32px 20px; display: grid; gap: 18px; }
+      section { background: white; border: 1px solid #d8e0e2; border-radius: 8px; padding: 18px; }
+      h1, h2, p { margin-top: 0; }
+      input, button { min-height: 40px; border-radius: 6px; border: 1px solid #cbd6da; padding: 0 10px; font: inherit; }
+      button { background: #20343c; color: white; cursor: pointer; }
+      .row { display: flex; gap: 10px; flex-wrap: wrap; }
+      pre { overflow: auto; background: #162228; color: #e8f1f2; padding: 14px; border-radius: 6px; }
+      a { color: #23624c; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <section>
+        <h1>Bot Rama Judicial</h1>
+        <p>Pagina simple de verificacion local sin dependencias de React.</p>
+        <p><a href="http://127.0.0.1:8000/docs" target="_blank">Abrir Swagger API</a></p>
+      </section>
+      <section>
+        <h2>Login</h2>
+        <div class="row">
+          <input id="email" value="admin@example.com" />
+          <input id="password" value="admin123" type="password" />
+          <button onclick="login()">Ingresar</button>
+          <button onclick="dashboard()">Dashboard</button>
+        </div>
+      </section>
+      <section>
+        <h2>Respuesta</h2>
+        <pre id="output">Esperando...</pre>
+      </section>
+    </main>
+    <script>
+      const API = "http://127.0.0.1:8000";
+      let token = "";
+      const output = document.getElementById("output");
+
+      async function login() {
+        const response = await fetch(`${API}/auth/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            email: document.getElementById("email").value,
+            password: document.getElementById("password").value,
+          }),
+        });
+        const data = await response.json();
+        token = data.access_token || "";
+        output.textContent = JSON.stringify(data, null, 2);
+      }
+
+      async function dashboard() {
+        const response = await fetch(`${API}/dashboard/resumen`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        output.textContent = JSON.stringify(await response.json(), null, 2);
+      }
+    </script>
+  </body>
+</html>
