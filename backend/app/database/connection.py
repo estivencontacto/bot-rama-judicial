@@ -1,4 +1,4 @@
-"""Compatibilidad de arquitectura 2.0 para la conexion de base de datos."""
+"""Conexion de base de datos compartida por routers, servicios y workers."""
 
 from backend.app.database.session import Base, SessionLocal, engine, get_db
 

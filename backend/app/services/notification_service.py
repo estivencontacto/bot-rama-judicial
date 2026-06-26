@@ -1,8 +1,4 @@
-"""Mensajeria Telegram.
-
-Construye los mensajes con el formato operativo del bot original y envia por
-Telegram usando la configuracion guardada por usuario.
-"""
+"""Mensajeria Telegram para novedades judiciales."""
 
 from __future__ import annotations
 
@@ -162,7 +158,7 @@ def obtener_configuracion_telegram_usuario(db, usuario_id: int) -> tuple[str | N
 
 
 def obtener_chat_telegram_usuario(db, usuario_id: int) -> str | None:
-    """Helper de compatibilidad para codigo que solo requiere chat ID."""
+    """Obtiene el chat ID activo del usuario."""
     chat_id, _ = obtener_configuracion_telegram_usuario(db, usuario_id)
     return chat_id
 

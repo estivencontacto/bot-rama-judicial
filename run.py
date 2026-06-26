@@ -1,9 +1,13 @@
-from src.main import ejecutar
+import uvicorn
 
+from backend.app.core.settings import get_settings
 
-# ===============================
-# PUNTO DE ENTRADA DEL PROYECTO
-# ===============================
 
 if __name__ == "__main__":
-    ejecutar()
+    settings = get_settings()
+    uvicorn.run(
+        "backend.app.main:app",
+        host="0.0.0.0",
+        port=8010 if settings.environment == "local" else 8000,
+        reload=settings.debug,
+    )

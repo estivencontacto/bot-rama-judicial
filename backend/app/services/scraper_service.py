@@ -55,7 +55,7 @@ class ScraperConfig:
 
 
 def obtener_ruta_edge() -> Optional[str]:
-    """Detecta Microsoft Edge en Windows para mantener compatibilidad local."""
+    """Detecta Microsoft Edge en Windows para ejecuciones locales."""
     rutas_posibles = [
         r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
         r"C:\Program Files\Microsoft\Edge\Application\msedge.exe",

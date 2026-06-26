@@ -138,11 +138,6 @@ backend/
 
 frontend/
   index.html
-  app/
-  services/
-
-src/
-  bot original compatible con estado JSON
 
 data/
   plantilla Excel para radicados
@@ -479,16 +474,6 @@ backend/app/services/notification_service.py
 ```
 
 El sistema envia mensajes cuando encuentra nuevas actuaciones. Si no hay cambios frente al historial anterior, no envia alerta.
-
-## Compatibilidad Con El Bot Original
-
-El bot inicial se conserva en:
-
-```text
-src/
-```
-
-Ese modulo mantiene compatibilidad con estado JSON y ejecucion local original. La nueva aplicacion migra progresivamente esa persistencia a base de datos.
 
 ## Estado Del Proyecto
 
