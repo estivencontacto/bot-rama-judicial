@@ -1594,15 +1594,16 @@
         renderShell(`
           <section class="panel">
             <div class="row">
-              <input placeholder="Radicado" value="${esc(state.filtros.radicado)}" oninput="state.filtros.radicado=this.value; render()" />
-              <input placeholder="Demandante o demandado" value="${esc(state.filtros.nombre)}" oninput="state.filtros.nombre=this.value; render()" />
+              <input placeholder="Radicado" value="${esc(state.filtros.radicado)}" oninput="state.filtros.radicado=this.value" onkeydown="if(event.key==='Enter') render()" />
+              <input placeholder="Demandante o demandado" value="${esc(state.filtros.nombre)}" oninput="state.filtros.nombre=this.value" onkeydown="if(event.key==='Enter') render()" />
               <select onchange="state.filtros.cliente=this.value; state.selectedCliente=this.value; localStorage.setItem('selected_cliente', this.value); render()">${clienteOptions(state.filtros.cliente || clienteActual())}</select>
-              <input placeholder="Juzgado" value="${esc(state.filtros.juzgado)}" oninput="state.filtros.juzgado=this.value; render()" />
-              <input type="date" value="${esc(state.filtros.fecha)}" oninput="state.filtros.fecha=this.value; render()" />
+              <input placeholder="Juzgado" value="${esc(state.filtros.juzgado)}" oninput="state.filtros.juzgado=this.value" onkeydown="if(event.key==='Enter') render()" />
+              <input type="date" value="${esc(state.filtros.fecha)}" oninput="state.filtros.fecha=this.value" onchange="render()" />
               <select onchange="state.filtros.estado=this.value; render()">
                 <option value="">Todos</option>
                 <option value="monitoreado" ${state.filtros.estado === "monitoreado" ? "selected" : ""}>Monitoreado</option>
               </select>
+              <button class="secondary" onclick="render()">Aplicar filtros</button>
             </div>
             ${renderProcesosTable(procesos)}
           </section>
