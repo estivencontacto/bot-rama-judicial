@@ -515,3 +515,7 @@ En progreso:
 ## Licencia
 
 Proyecto con licencia MIT. Ver `LICENSE`.
+
+## Mantenimiento
+
+Repositorio revisado y mantenido activamente.
